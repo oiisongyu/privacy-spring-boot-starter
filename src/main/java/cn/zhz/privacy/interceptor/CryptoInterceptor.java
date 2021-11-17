@@ -12,6 +12,8 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +37,11 @@ import java.util.Properties;
 )
 @Component
 public class CryptoInterceptor implements Interceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(CryptoInterceptor.class.getName());// slf4j日志记录器
+
+    @Autowired
+    private CryptoProperties cryptoProperties;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -93,9 +100,18 @@ public class CryptoInterceptor implements Interceptor {
                         if (value == null) {
                             continue;
                         }
-
+                        String key = null;
+                        //全局配置的key
+                        String propertiesKey = cryptoProperties.getKey();
+                        log.debug("全局key是：" + propertiesKey);
                         //属性上的key
-                        String key = annotation.key();
+                        String annotationKey = annotation.key();
+                        log.debug("注解key是：" + annotationKey);
+
+                        if (propertiesKey != null && !"".equals(propertiesKey)) {
+                            key = annotationKey;
+                        }
+
                         Algorithm algorithm = annotation.algorithm();
                         Class<? extends ICrypto> iCryptoImpl = annotation.iCrypto();
                         ICrypto iCrypto = iCryptoImpl.newInstance();

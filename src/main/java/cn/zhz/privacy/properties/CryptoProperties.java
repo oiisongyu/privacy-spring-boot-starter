@@ -1,6 +1,7 @@
 package cn.zhz.privacy.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 /**
  * @author ZHZ
@@ -8,6 +9,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @apiNote
  */
 
-//@ConfigurationProperties(prefix = "privacy.crypto")
+@ConfigurationProperties(prefix = "privacy.crypto")
+@Component
 public class CryptoProperties {
+    private String key;
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
 }
