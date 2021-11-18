@@ -43,15 +43,15 @@ mybatis 3.5
 
 3.  @FieldEncrypt 注解默认使用AES算法，现在是集成了两种算法MD5和AES ，MD5是不可逆算法不可以解密，AES可以反向解密，默认的AES加密解密时我固定了一个秘钥，如果想自定义秘钥有两种方式：
 
-    ① 全局配置yml文件
+① 全局配置yml文件
+
 ```
 privacy:
   crypto:
     key: jshfdiwhfkjncwolmas
-
-
 ```
-    ② 加注解上
+
+② 加注解上
 
 ```
     @FieldEncrypt(key = "qwertyuiop")
