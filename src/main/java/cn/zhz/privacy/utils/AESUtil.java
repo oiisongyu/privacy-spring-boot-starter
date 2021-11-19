@@ -1,5 +1,9 @@
 package cn.zhz.privacy.utils;
 
+import cn.zhz.privacy.crypto.DefaultCrypto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -18,7 +22,7 @@ import java.util.UUID;
 
 public class AESUtil {
 
-    private final static String KEY = "edcb87b4-68b1-466b-8f6d-256ef53e50f0";
+    private static final Logger log = LoggerFactory.getLogger(DefaultCrypto.class.getName());
 
     private final static String ALGORITHM = "AES";
 
@@ -45,18 +49,11 @@ public class AESUtil {
         return Base64.getEncoder().encodeToString(encrypt);
     }
 
-    public static String encryptBase64(String content) {
-        return encryptBase64(KEY, content);
-    }
-
     public static String decryptBase64(String key, String content) {
         byte[] decodeContent = Base64.getDecoder().decode(content);
         return decrypt(key, decodeContent);
     }
 
-    public static String decryptBase64(String content) {
-        return decryptBase64(KEY, content);
-    }
 
 
     /**
@@ -73,6 +70,7 @@ public class AESUtil {
             byte[] decrypted = cipher.doFinal(encrypted);
             return new String(decrypted);
         } catch (Exception e) {
+            log.debug("解密失败以为你返回原值");
             return "";
         }
     }

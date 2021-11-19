@@ -16,13 +16,28 @@ import java.lang.annotation.*;
 @Documented
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
+@Target({ElementType.FIELD, ElementType.ANNOTATION_TYPE})
 public @interface FieldEncrypt {
 
+    /**
+     * 秘钥
+     *
+     * @return
+     */
     String key() default "";
 
+    /**
+     * 加密解密算法
+     *
+     * @return
+     */
     Algorithm algorithm() default Algorithm.AES;
 
+    /**
+     * 加密解密器
+     *
+     * @return
+     */
     Class<? extends ICrypto> iCrypto() default DefaultCrypto.class;
 
 }

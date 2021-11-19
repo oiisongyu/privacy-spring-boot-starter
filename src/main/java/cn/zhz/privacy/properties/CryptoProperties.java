@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "privacy.crypto")
 @Component
 public class CryptoProperties {
+    /**
+     * 秘钥
+     */
     private String key;
 
     public String getKey() {
