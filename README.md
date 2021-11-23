@@ -83,7 +83,7 @@ public class MyCrypto implements ICrypto {
         return "mnbvcxz";
     }
 }
-
+6.  @FieldDesensitize加类属性上可实现字段脱敏
 ```
 
 #### 参与贡献
