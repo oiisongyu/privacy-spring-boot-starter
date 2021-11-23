@@ -2,7 +2,6 @@ package cn.zhz.privacy.crypto;
 
 
 import cn.zhz.privacy.enums.Algorithm;
-import cn.zhz.privacy.interceptor.CryptoInterceptor;
 import cn.zhz.privacy.utils.AESUtil;
 import cn.zhz.privacy.utils.CryptoUtil;
 import org.slf4j.Logger;

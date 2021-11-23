@@ -10,7 +10,7 @@ import java.lang.annotation.*;
 /**
  * @author ZHZ
  * @date 2021-11-16
- * @apiNote
+ * @apiNote 字段加密
  */
 
 @Documented

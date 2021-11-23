@@ -1,12 +1,12 @@
 package cn.zhz.privacy.interceptor;
 
 
+import cn.zhz.privacy.annotation.FieldDesensitize;
 import cn.zhz.privacy.annotation.FieldEncrypt;
 import cn.zhz.privacy.crypto.ICrypto;
 import cn.zhz.privacy.enums.Algorithm;
 import cn.zhz.privacy.enums.CryptoType;
 import cn.zhz.privacy.properties.CryptoProperties;
-import org.apache.ibatis.binding.MapperMethod;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -19,8 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.beans.IntrospectionException;
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.*;
 import java.time.chrono.ChronoLocalDate;
 import java.util.*;
@@ -116,9 +114,10 @@ public class CryptoInterceptor implements Interceptor {
     }
 
     /**
-     * 处理参数
+     * 处理参数或结果
      *
      * @param object
+     * @param cryptoType
      * @throws IllegalAccessException
      */
     private void handleParameterOrResult(Object object, CryptoType cryptoType) throws IllegalAccessException {
@@ -144,7 +143,7 @@ public class CryptoInterceptor implements Interceptor {
         fieldObjectHashMap.keySet().forEach(key -> {
             try {
                 handleString(key, fieldObjectHashMap.get(key), cryptoType);
-            } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
@@ -273,7 +272,7 @@ public class CryptoInterceptor implements Interceptor {
      * @throws NoSuchMethodException
      * @throws InvocationTargetException
      */
-    private void handleString(Field field, Object object, CryptoType cryptoType) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+    private void handleString(Field field, Object object, CryptoType cryptoType) throws Exception {
 
         boolean accessible = field.isAccessible();
         field.setAccessible(true);
@@ -299,12 +298,20 @@ public class CryptoInterceptor implements Interceptor {
             Algorithm algorithm = annotation.algorithm();
             Class<? extends ICrypto> iCryptoImpl = annotation.iCrypto();
             ICrypto iCrypto = iCryptoImpl.newInstance();
-            Method decrypt = iCryptoImpl.getDeclaredMethod(cryptoType.getMethod(), Algorithm.class, String.class, String.class);
+
+            String valueResult;
+//            Method decrypt = iCryptoImpl.getDeclaredMethod(cryptoType.getMethod(), Algorithm.class, String.class, String.class);
             //解密后的值
-            Object valueDecrypt = decrypt.invoke(iCrypto, algorithm, String.valueOf(value), key);
+//            Object valueDecrypt = decrypt.invoke(iCrypto, algorithm, String.valueOf(value), key);
+            if (cryptoType.equals(CryptoType.DECRYPT)) {
+                valueResult = iCrypto.decrypt(algorithm, String.valueOf(value), key);
+            } else {
+                valueResult = iCrypto.encrypt(algorithm, String.valueOf(value), key);
+            }
+
             log.debug("原值：" + value);
-            log.debug("现在：" + valueDecrypt);
-            field.set(object, String.valueOf(valueDecrypt));
+            log.debug("现在：" + valueResult);
+            field.set(object, String.valueOf(valueResult));
             field.setAccessible(accessible);
         }
     }

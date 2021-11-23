@@ -1,1 +1,1 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=cn.zhz.privacy.config.PrivacyConfig
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=cn.zhz.privacy.config.PrivacyAutoConfiguration

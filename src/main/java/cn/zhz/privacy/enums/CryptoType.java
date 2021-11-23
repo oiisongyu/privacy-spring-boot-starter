@@ -12,6 +12,9 @@ public enum CryptoType {
      */
     ENCRYPT("encrypt"), DECRYPT("decrypt");
 
+    /**
+     * 对应加密器方法名称
+     */
     private String method;
 
     CryptoType(String method) {
