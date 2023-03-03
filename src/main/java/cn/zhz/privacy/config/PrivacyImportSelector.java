@@ -1,5 +1,6 @@
 package cn.zhz.privacy.config;
 
+import cn.zhz.privacy.crypto.DefaultCrypto;
 import cn.zhz.privacy.interceptor.CryptoInterceptor;
 import cn.zhz.privacy.interceptor.DesensitizeInterceptor;
 import cn.zhz.privacy.properties.CryptoProperties;
@@ -16,6 +17,7 @@ public class PrivacyImportSelector implements ImportSelector {
         className.add(CryptoInterceptor.class.getName());
         className.add(DesensitizeInterceptor.class.getName());
         className.add(CryptoProperties.class.getName());
+        className.add(DefaultCrypto.class.getName());
         return className.toArray(new String[className.size()]);
     }
 }
