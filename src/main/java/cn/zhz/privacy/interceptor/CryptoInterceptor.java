@@ -1,7 +1,6 @@
 package cn.zhz.privacy.interceptor;
 
 
-import cn.zhz.privacy.annotation.FieldDesensitize;
 import cn.zhz.privacy.annotation.FieldEncrypt;
 import cn.zhz.privacy.crypto.ICrypto;
 import cn.zhz.privacy.enums.Algorithm;
@@ -300,16 +299,11 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
             }
 
             Algorithm algorithm = annotation.algorithm();
-//            Class<? extends ICrypto> iCryptoImpl = annotation.iCrypto();
-//            ICrypto iCrypto = iCryptoImpl.newInstance();
-
 
             ICrypto iCrypto = applicationContext.getBean(annotation.iCrypto());
 
             String valueResult;
-//            Method decrypt = iCryptoImpl.getDeclaredMethod(cryptoType.getMethod(), Algorithm.class, String.class, String.class);
-            //解密后的值
-//            Object valueDecrypt = decrypt.invoke(iCrypto, algorithm, String.valueOf(value), key);
+
             if (cryptoType.equals(CryptoType.DECRYPT)) {
                 valueResult = iCrypto.decrypt(algorithm, String.valueOf(value), key);
             } else {

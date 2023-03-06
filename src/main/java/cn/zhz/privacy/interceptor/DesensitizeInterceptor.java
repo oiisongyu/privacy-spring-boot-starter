@@ -12,6 +12,9 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
@@ -31,10 +34,11 @@ import java.util.*;
         }
 )
 @Component
-public class DesensitizeInterceptor implements Interceptor {
+public class DesensitizeInterceptor implements Interceptor, ApplicationContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(DesensitizeInterceptor.class.getName());
 
+    private ApplicationContext applicationContext;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -207,9 +211,7 @@ public class DesensitizeInterceptor implements Interceptor {
         if (annotation != null) {
 
             String fillValue = annotation.fillValue();
-
-            Class<? extends IDesensitizer> desensitizer = annotation.desensitizer();
-            IDesensitizer iDesensitizer = desensitizer.newInstance();
+            IDesensitizer iDesensitizer = applicationContext.getBean(annotation.desensitizer());
             String desensitizerValue = iDesensitizer.execute(String.valueOf(value), fillValue);
 
             log.debug("原值：" + value);
@@ -226,5 +228,11 @@ public class DesensitizeInterceptor implements Interceptor {
 
     @Override
     public void setProperties(Properties properties) {
+
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 }
