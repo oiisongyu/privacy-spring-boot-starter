@@ -16,7 +16,10 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.*;
@@ -36,12 +39,13 @@ import java.util.*;
         }
 )
 @Component
-public class CryptoInterceptor implements Interceptor {
+public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(CryptoInterceptor.class.getName());
 
     @Autowired
     private CryptoProperties cryptoProperties;
+    private ApplicationContext applicationContext;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -296,8 +300,11 @@ public class CryptoInterceptor implements Interceptor {
             }
 
             Algorithm algorithm = annotation.algorithm();
-            Class<? extends ICrypto> iCryptoImpl = annotation.iCrypto();
-            ICrypto iCrypto = iCryptoImpl.newInstance();
+//            Class<? extends ICrypto> iCryptoImpl = annotation.iCrypto();
+//            ICrypto iCrypto = iCryptoImpl.newInstance();
+
+
+            ICrypto iCrypto = applicationContext.getBean(annotation.iCrypto());
 
             String valueResult;
 //            Method decrypt = iCryptoImpl.getDeclaredMethod(cryptoType.getMethod(), Algorithm.class, String.class, String.class);
@@ -323,5 +330,10 @@ public class CryptoInterceptor implements Interceptor {
 
     @Override
     public void setProperties(Properties properties) {
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 }
