@@ -6,6 +6,7 @@ import cn.zhz.privacy.crypto.ICrypto;
 import cn.zhz.privacy.enums.Algorithm;
 import cn.zhz.privacy.enums.CryptoType;
 import cn.zhz.privacy.properties.CryptoProperties;
+import cn.zhz.privacy.utils.CacheUtil;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -21,7 +22,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.time.chrono.ChronoLocalDate;
 import java.util.*;
 
@@ -152,23 +156,6 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
         });
     }
 
-    /**
-     * 是否是基本类型
-     *
-     * @param type
-     * @return
-     */
-    private boolean isBase(Type type) {
-
-        return boolean.class.equals(type) ||
-                char.class.equals(type) ||
-                long.class.equals(type) ||
-                int.class.equals(type) ||
-                byte.class.equals(type) ||
-                short.class.equals(type) ||
-                double.class.equals(type) ||
-                float.class.equals(type);
-    }
 
     /**
      * 是否是
@@ -181,34 +168,6 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
         return object == null || object instanceof CharSequence || object instanceof Number || object instanceof Collection || object instanceof Date || object instanceof ChronoLocalDate;
     }
 
-    /**
-     * 聚合父类属性
-     *
-     * @param oClass
-     * @param fields
-     * @return
-     */
-    private List<Field> mergeField(Class<?> oClass, List<Field> fields) {
-        if (fields == null) {
-            fields = new ArrayList<>();
-        }
-        Class<?> superclass = oClass.getSuperclass();
-        if (superclass != null && !superclass.equals(Object.class) && superclass.getDeclaredFields().length > 0) {
-            mergeField(superclass, fields);
-        }
-        for (Field declaredField : oClass.getDeclaredFields()) {
-
-            int modifiers = declaredField.getModifiers();
-
-            if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers) || Modifier.isVolatile(modifiers) || Modifier.isSynchronized(modifiers)) {
-                continue;
-            }
-            fields.add(declaredField);
-        }
-
-        return fields;
-
-    }
 
     /**
      * 处理Object
@@ -223,7 +182,7 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
             return;
         }
 
-        List<Field> fields = mergeField(oClass, null);
+        List<Field> fields = CacheUtil.getFields(oClass);
 
         for (Field declaredField : fields) {
 

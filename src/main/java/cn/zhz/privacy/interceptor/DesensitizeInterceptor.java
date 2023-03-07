@@ -3,6 +3,7 @@ package cn.zhz.privacy.interceptor;
 
 import cn.zhz.privacy.annotation.FieldDesensitize;
 import cn.zhz.privacy.desensitizer.IDesensitizer;
+import cn.zhz.privacy.utils.CacheUtil;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.time.chrono.ChronoLocalDate;
+import java.time.chrono.ChronoLocalDateTime;
 import java.util.*;
 
 /**
@@ -107,37 +109,16 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
      */
     private boolean isFilter(Object object) {
 
-        return object == null || object instanceof CharSequence || object instanceof Number || object instanceof Collection || object instanceof Date || object instanceof ChronoLocalDate;
+        return object == null ||
+                object instanceof CharSequence ||
+                object instanceof Number ||
+                object instanceof Collection ||
+                object instanceof Date ||
+                object instanceof ChronoLocalDate ||
+                object instanceof ChronoLocalDateTime
+                ;
     }
 
-    /**
-     * 聚合父类属性
-     *
-     * @param oClass
-     * @param fields
-     * @return
-     */
-    private List<Field> mergeField(Class<?> oClass, List<Field> fields) {
-        if (fields == null) {
-            fields = new ArrayList<>();
-        }
-        Class<?> superclass = oClass.getSuperclass();
-        if (superclass != null && !superclass.equals(Object.class) && superclass.getDeclaredFields().length > 0) {
-            mergeField(superclass, fields);
-        }
-        for (Field declaredField : oClass.getDeclaredFields()) {
-
-            int modifiers = declaredField.getModifiers();
-
-            if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers) || Modifier.isVolatile(modifiers) || Modifier.isSynchronized(modifiers)) {
-                continue;
-            }
-            fields.add(declaredField);
-        }
-
-        return fields;
-
-    }
 
     /**
      * 处理Object
@@ -151,8 +132,7 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
         if (isFilter(obj)) {
             return;
         }
-
-        List<Field> fields = mergeField(oClass, null);
+        List<Field> fields = CacheUtil.getFields(oClass);
 
         for (Field declaredField : fields) {
 
@@ -166,10 +146,9 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
             Object value = declaredField.get(obj);
             declaredField.setAccessible(accessible);
 
-            if (value == null) {
-                continue;
-            } else if (value instanceof Number) {
-                continue;
+
+            if (value == null || value instanceof Number) {
+
             } else if (value instanceof String) {
 
                 FieldDesensitize annotation = declaredField.getAnnotation(FieldDesensitize.class);
@@ -178,8 +157,7 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
                 }
 
             } else if (value instanceof Collection) {
-                Collection coll = (Collection) value;
-                for (Object o : coll) {
+                for (Object o : (Collection) value) {
                     if (isFilter(o)) {
                         //默认集合内类型一致
                         break;
