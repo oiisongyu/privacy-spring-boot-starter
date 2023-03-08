@@ -22,6 +22,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
+import javax.management.Query;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -165,7 +166,14 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
      */
     private boolean isFilter(Object object) {
 
-        return object == null || object instanceof CharSequence || object instanceof Number || object instanceof Collection || object instanceof Date || object instanceof ChronoLocalDate;
+        return object == null ||
+                object instanceof CharSequence ||
+                object instanceof Number ||
+                object instanceof Collection ||
+                object instanceof Date ||
+                object instanceof ChronoLocalDate ||
+                object instanceof Boolean
+                ;
     }
 
 
