@@ -2,7 +2,6 @@ package cn.zhz.privacy.crypto;
 
 
 import cn.zhz.privacy.enums.Algorithm;
-import cn.zhz.privacy.utils.AESUtil;
 import cn.zhz.privacy.utils.CryptoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,7 @@ public class DefaultCrypto implements ICrypto {
      * @return 加密后的值
      */
     @Override
-    public String encrypt(Algorithm algorithm, String value, String key) throws Exception {
+    public String encrypt(Algorithm algorithm, String value, String key) {
         String result;
 
         if (key == null || key.length() == 0) {
@@ -38,13 +37,13 @@ public class DefaultCrypto implements ICrypto {
 
         switch (algorithm) {
             case MD5:
-                result = CryptoUtil.encryptBASE64(CryptoUtil.encryptMD5(value.getBytes()));
+                result = CryptoUtil.encryptMd5Base64(value);
                 break;
             case AES:
-                result = AESUtil.encryptBase64(key, value);
+                result = CryptoUtil.encryptAesBase64(key, value);
                 break;
             default:
-                result = AESUtil.encryptBase64(key, value);
+                result = CryptoUtil.encryptAesBase64(key, value);
         }
         return result;
     }
@@ -71,13 +70,13 @@ public class DefaultCrypto implements ICrypto {
                     result = "";
                     break;
                 case AES:
-                    result = AESUtil.decryptBase64(key, value);
+                    result = CryptoUtil.decryptAesBase64(key, value);
                     break;
                 default:
-                    result = AESUtil.decryptBase64(key, value);
+                    result = CryptoUtil.decryptAesBase64(key, value);
             }
         } catch (IllegalArgumentException illegalArgumentException) {
-            log.debug("值：‘" + value + "’不支持解密");
+            log.error("值：‘" + value + "’不支持解密");
             result = "";
         }
 
