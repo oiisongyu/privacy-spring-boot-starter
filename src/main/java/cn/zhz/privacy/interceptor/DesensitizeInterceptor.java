@@ -3,7 +3,7 @@ package cn.zhz.privacy.interceptor;
 
 import cn.zhz.privacy.annotation.FieldDesensitize;
 import cn.zhz.privacy.desensitizer.IDesensitizer;
-import cn.zhz.privacy.utils.CacheUtil;
+import cn.zhz.privacy.handler.DesensitizeAnnotationHandler;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -16,13 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.time.chrono.ChronoLocalDate;
-import java.time.chrono.ChronoLocalDateTime;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * @author ZHZ
@@ -35,12 +34,17 @@ import java.util.*;
                 @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
         }
 )
-@Component
 public class DesensitizeInterceptor implements Interceptor, ApplicationContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(DesensitizeInterceptor.class.getName());
 
     private ApplicationContext applicationContext;
+
+    private final DesensitizeAnnotationHandler desensitizeAnnotationCacheHandler;
+
+    public DesensitizeInterceptor(DesensitizeAnnotationHandler desensitizeAnnotationCacheHandler) {
+        this.desensitizeAnnotationCacheHandler = desensitizeAnnotationCacheHandler;
+    }
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -78,45 +82,15 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
             boundSql = (BoundSql) args[5];
         }
 
-        List<Object> resultList;
-        resultList = executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+        List<Object> resultList = executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
 
-        for (Object object : resultList) {
-            HashMap<Field, Object> fieldObjectHashMap = new HashMap<>();
-
+        resultList.forEach(object -> {
             if (object != null) {
-                handleObject(object, object.getClass(), fieldObjectHashMap);
+                desensitizeAnnotationCacheHandler.parse(object.getClass());
+                handleObject(object, object.getClass());
             }
-            //统一修改加密解密值
-            fieldObjectHashMap.keySet().forEach(key -> {
-                try {
-                    handleString(key, fieldObjectHashMap.get(key));
-                } catch (IllegalAccessException | InstantiationException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
-
+        });
         return resultList;
-    }
-
-
-    /**
-     * 是否是
-     *
-     * @param object
-     * @return
-     */
-    private boolean isFilter(Object object) {
-
-        return object == null ||
-                object instanceof CharSequence ||
-                object instanceof Number ||
-                object instanceof Collection ||
-                object instanceof Date ||
-                object instanceof ChronoLocalDate ||
-                object instanceof ChronoLocalDateTime
-                ;
     }
 
 
@@ -125,47 +99,48 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
      *
      * @param obj
      * @param oClass
-     * @throws IllegalAccessException
      */
-    private void handleObject(Object obj, Class<?> oClass, HashMap<Field, Object> fieldObjectHashMap) throws IllegalAccessException {
-        //过滤
-        if (isFilter(obj)) {
+    private void handleObject(Object obj, Class<?> oClass) {
+
+        Set<Field> fields = desensitizeAnnotationCacheHandler.getFields(oClass);
+
+        if (fields == null || fields.isEmpty()) {
             return;
         }
-        List<Field> fields = CacheUtil.getFields(oClass);
-
+        
         for (Field declaredField : fields) {
-
-            //静态属性直接跳过
-            if (Modifier.isStatic(declaredField.getModifiers())) {
-                continue;
-            }
 
             boolean accessible = declaredField.isAccessible();
             declaredField.setAccessible(true);
-            Object value = declaredField.get(obj);
+            Object value;
+            try {
+                value = declaredField.get(obj);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
             declaredField.setAccessible(accessible);
 
 
             if (value == null || value instanceof Number) {
 
-            } else if (value instanceof String) {
+            } else if (value instanceof CharSequence) {
 
                 FieldDesensitize annotation = declaredField.getAnnotation(FieldDesensitize.class);
                 if (annotation != null) {
-                    fieldObjectHashMap.put(declaredField, obj);
+                    try {
+                        setValue(declaredField, obj, annotation);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
                 }
 
             } else if (value instanceof Collection) {
                 for (Object o : (Collection) value) {
-                    if (isFilter(o)) {
-                        //默认集合内类型一致
-                        break;
-                    }
-                    handleObject(o, o.getClass(), fieldObjectHashMap);
+                    handleObject(o, o.getClass());
                 }
             } else {
-                handleObject(value, value.getClass(), fieldObjectHashMap);
+                handleObject(value, value.getClass());
             }
         }
 
@@ -174,27 +149,25 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
     /**
      * 处理字符
      *
-     * @param field
-     * @param object
+     * @param field 字段
+     * @param object 字段原值
      * @throws IllegalAccessException
-     * @throws InstantiationException
      */
-    private void handleString(Field field, Object object) throws IllegalAccessException, InstantiationException {
+    private void setValue(Field field, Object object, FieldDesensitize annotation) throws IllegalAccessException {
 
         boolean accessible = field.isAccessible();
         field.setAccessible(true);
         Object value = field.get(object);
 
-        FieldDesensitize annotation = field.getAnnotation(FieldDesensitize.class);
         if (annotation != null) {
 
             String fillValue = annotation.fillValue();
             IDesensitizer iDesensitizer = applicationContext.getBean(annotation.desensitizer());
-            String desensitizerValue = iDesensitizer.execute(String.valueOf(value), fillValue);
+            String desensitizeValue = iDesensitizer.execute(String.valueOf(value), fillValue);
 
             log.debug("原值：" + value);
-            log.debug("脱敏后：" + desensitizerValue);
-            field.set(object, String.valueOf(desensitizerValue));
+            log.debug("脱敏后：" + desensitizeValue);
+            field.set(object, String.valueOf(desensitizeValue));
             field.setAccessible(accessible);
         }
     }

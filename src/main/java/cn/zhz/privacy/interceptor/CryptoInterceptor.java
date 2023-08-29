@@ -5,8 +5,8 @@ import cn.zhz.privacy.annotation.FieldEncrypt;
 import cn.zhz.privacy.crypto.ICrypto;
 import cn.zhz.privacy.enums.Algorithm;
 import cn.zhz.privacy.enums.CryptoType;
+import cn.zhz.privacy.handler.CryptAnnotationHandler;
 import cn.zhz.privacy.properties.CryptoProperties;
-import cn.zhz.privacy.utils.CacheUtil;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -20,14 +20,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
 
-import javax.management.Query;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.time.chrono.ChronoLocalDate;
 import java.util.*;
 
 /**
@@ -42,7 +38,6 @@ import java.util.*;
                 @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
         }
 )
-@Component
 public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
 
     private static final Logger log = LoggerFactory.getLogger(CryptoInterceptor.class.getName());
@@ -51,7 +46,12 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
     private CryptoProperties cryptoProperties;
     private ApplicationContext applicationContext;
 
-    @Override
+    private final CryptAnnotationHandler cryptAnnotationCacheHandler;
+
+    public CryptoInterceptor(CryptAnnotationHandler cryptAnnotationCacheHandler) {
+        this.cryptAnnotationCacheHandler = cryptAnnotationCacheHandler;
+    }
+
     public Object intercept(Invocation invocation) throws Throwable {
         Method method = invocation.getMethod();
 
@@ -98,12 +98,9 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
             boundSql = (BoundSql) args[5];
         }
 
-        List<Object> resultList;
-        resultList = executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+        List<Object> resultList = executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
 
-        for (Object o : resultList) {
-            handleParameterOrResult(o, CryptoType.DECRYPT);
-        }
+        resultList.forEach(result -> handleParameterOrResult(result, CryptoType.DECRYPT));
 
         return resultList;
     }
@@ -126,10 +123,8 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
      *
      * @param object
      * @param cryptoType
-     * @throws IllegalAccessException
      */
-    private void handleParameterOrResult(Object object, CryptoType cryptoType) throws IllegalAccessException {
-        HashMap<Field, Object> fieldObjectHashMap = new HashMap<>();
+    private void handleParameterOrResult(Object object, CryptoType cryptoType) {
         //多个参数
         if (object instanceof Map) {
             Map paramMap = (Map) object;
@@ -137,43 +132,20 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
             for (Object key : keySet) {
                 Object o = paramMap.get(key);
                 if (o != null) {
-                    handleObject(o, o.getClass(), fieldObjectHashMap);
+                    //
+                    cryptAnnotationCacheHandler.parse(o.getClass());
+                    handleObject(o, o.getClass(), cryptoType);
                 }
 
             }
         } else {
             if (object != null) {
-                handleObject(object, object.getClass(), fieldObjectHashMap);
+                //
+                cryptAnnotationCacheHandler.parse(object.getClass());
+                handleObject(object, object.getClass(), cryptoType);
             }
         }
 
-        //统一修改加密解密值
-        fieldObjectHashMap.keySet().forEach(key -> {
-            try {
-                handleString(key, fieldObjectHashMap.get(key), cryptoType);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
-
-    /**
-     * 是否是
-     *
-     * @param object
-     * @return
-     */
-    private boolean isFilter(Object object) {
-
-        return object == null ||
-                object instanceof CharSequence ||
-                object instanceof Number ||
-                object instanceof Collection ||
-                object instanceof Date ||
-                object instanceof ChronoLocalDate ||
-                object instanceof Boolean
-                ;
     }
 
 
@@ -182,16 +154,14 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
      *
      * @param obj
      * @param oClass
-     * @throws IllegalAccessException
      */
-    private void handleObject(Object obj, Class<?> oClass, HashMap<Field, Object> fieldObjectHashMap) throws IllegalAccessException {
-        //过滤
-        if (isFilter(obj)) {
+    private void handleObject(Object obj, Class<?> oClass, CryptoType cryptoType) {
+
+
+        Set<Field> fields = cryptAnnotationCacheHandler.getFields(oClass);
+        if (fields == null || fields.isEmpty()) {
             return;
         }
-
-        List<Field> fields = CacheUtil.getFields(oClass);
-
         for (Field declaredField : fields) {
 
             //静态属性直接跳过
@@ -201,54 +171,53 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
 
             boolean accessible = declaredField.isAccessible();
             declaredField.setAccessible(true);
-            Object value = declaredField.get(obj);
+            Object value;
+            try {
+                value = declaredField.get(obj);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
             declaredField.setAccessible(accessible);
 
-            if (value == null) {
-                continue;
-            } else if (value instanceof Number) {
-                continue;
-            } else if (value instanceof String) {
+            if (value == null || value instanceof Number) {
+
+            } else if (value instanceof CharSequence) {
 
                 FieldEncrypt annotation = declaredField.getAnnotation(FieldEncrypt.class);
                 if (annotation != null) {
-                    fieldObjectHashMap.put(declaredField, obj);
+                    try {
+                        setValue(declaredField, obj, cryptoType, annotation);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
                 }
 
             } else if (value instanceof Collection) {
                 Collection coll = (Collection) value;
                 for (Object o : coll) {
-                    if (isFilter(o)) {
-                        //默认集合内类型一致
-                        break;
-                    }
-                    handleObject(o, o.getClass(), fieldObjectHashMap);
+                    handleObject(o, o.getClass(), cryptoType);
                 }
             } else {
-                handleObject(value, value.getClass(), fieldObjectHashMap);
+                handleObject(value, value.getClass(), cryptoType);
             }
         }
 
     }
 
     /**
-     * 处理字符
+     * 处理值
      *
      * @param field
      * @param object
      * @param cryptoType
-     * @throws IllegalAccessException
-     * @throws InstantiationException
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
      */
-    private void handleString(Field field, Object object, CryptoType cryptoType) throws Exception {
+    private void setValue(Field field, Object object, CryptoType cryptoType, FieldEncrypt annotation) throws Exception {
 
         boolean accessible = field.isAccessible();
         field.setAccessible(true);
         Object value = field.get(object);
 
-        FieldEncrypt annotation = field.getAnnotation(FieldEncrypt.class);
         if (annotation != null) {
 
             String key;

@@ -5,6 +5,8 @@ import cn.zhz.privacy.desensitizer.DefaultDesensitizer;
 import cn.zhz.privacy.interceptor.CryptoInterceptor;
 import cn.zhz.privacy.interceptor.DesensitizeInterceptor;
 import cn.zhz.privacy.properties.CryptoProperties;
+import cn.zhz.privacy.handler.CryptAnnotationHandler;
+import cn.zhz.privacy.handler.DesensitizeAnnotationHandler;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,12 +22,12 @@ public class PrivacyAutoConfiguration {
 
     @Bean
     public CryptoInterceptor cryptoInterceptor() {
-        return new CryptoInterceptor();
+        return new CryptoInterceptor(new CryptAnnotationHandler());
     }
 
     @Bean
     public DesensitizeInterceptor desensitizeInterceptor() {
-        return new DesensitizeInterceptor();
+        return new DesensitizeInterceptor(new DesensitizeAnnotationHandler());
     }
 
     @Bean
