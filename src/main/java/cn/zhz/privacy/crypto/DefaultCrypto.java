@@ -3,19 +3,15 @@ package cn.zhz.privacy.crypto;
 
 import cn.zhz.privacy.enums.Algorithm;
 import cn.zhz.privacy.utils.CryptoUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author ZHZ
  * @date 2021-11-15
  * @apiNote
  */
-@Component
+@Slf4j
 public class DefaultCrypto implements ICrypto {
-
-    private static final Logger log = LoggerFactory.getLogger(DefaultCrypto.class.getName());
 
     private final static String KEY = "edcb87b4-68b1-466b-8f6d-256ef53e50f0";
 
@@ -31,7 +27,7 @@ public class DefaultCrypto implements ICrypto {
     public String encrypt(Algorithm algorithm, String value, String key) {
         String result;
 
-        if (key == null || key.length() == 0) {
+        if (key == null || key.isEmpty()) {
             key = KEY;
         }
 
@@ -59,7 +55,7 @@ public class DefaultCrypto implements ICrypto {
     @Override
     public String decrypt(Algorithm algorithm, String value, String key) {
         String result;
-        if (key == null || key.length() == 0) {
+        if (key == null || key.isEmpty()) {
             key = KEY;
         }
 

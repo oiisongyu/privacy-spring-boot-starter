@@ -7,6 +7,7 @@ import cn.zhz.privacy.enums.Algorithm;
 import cn.zhz.privacy.enums.CryptoType;
 import cn.zhz.privacy.handler.CryptAnnotationHandler;
 import cn.zhz.privacy.properties.CryptoProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -14,10 +15,7 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
@@ -38,17 +36,17 @@ import java.util.*;
                 @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
         }
 )
+@Slf4j
 public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
 
-    private static final Logger log = LoggerFactory.getLogger(CryptoInterceptor.class.getName());
 
-    @Autowired
-    private CryptoProperties cryptoProperties;
+    private final CryptoProperties cryptoProperties;
     private ApplicationContext applicationContext;
 
     private final CryptAnnotationHandler cryptAnnotationCacheHandler;
 
-    public CryptoInterceptor(CryptAnnotationHandler cryptAnnotationCacheHandler) {
+    public CryptoInterceptor(CryptoProperties cryptoProperties, CryptAnnotationHandler cryptAnnotationCacheHandler) {
+        this.cryptoProperties = cryptoProperties;
         this.cryptAnnotationCacheHandler = cryptAnnotationCacheHandler;
     }
 

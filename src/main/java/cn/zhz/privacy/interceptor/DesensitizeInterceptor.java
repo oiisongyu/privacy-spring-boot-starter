@@ -4,6 +4,7 @@ package cn.zhz.privacy.interceptor;
 import cn.zhz.privacy.annotation.FieldDesensitize;
 import cn.zhz.privacy.desensitizer.IDesensitizer;
 import cn.zhz.privacy.handler.DesensitizeAnnotationHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -11,8 +12,6 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -34,9 +33,9 @@ import java.util.Set;
                 @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
         }
 )
+@Slf4j
 public class DesensitizeInterceptor implements Interceptor, ApplicationContextAware {
 
-    private static final Logger log = LoggerFactory.getLogger(DesensitizeInterceptor.class.getName());
 
     private ApplicationContext applicationContext;
 
@@ -107,7 +106,7 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
         if (fields == null || fields.isEmpty()) {
             return;
         }
-        
+
         for (Field declaredField : fields) {
 
             boolean accessible = declaredField.isAccessible();
@@ -149,7 +148,7 @@ public class DesensitizeInterceptor implements Interceptor, ApplicationContextAw
     /**
      * 处理字符
      *
-     * @param field 字段
+     * @param field  字段
      * @param object 字段原值
      * @throws IllegalAccessException
      */
