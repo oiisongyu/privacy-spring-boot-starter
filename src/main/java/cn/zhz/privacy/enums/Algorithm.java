@@ -1,10 +1,13 @@
 package cn.zhz.privacy.enums;
 
+import lombok.NoArgsConstructor;
+
 /**
  * @author ZHZ
  * @date 2021-11-16
  * @apiNote
  */
+@NoArgsConstructor
 public enum Algorithm {
 
     /**
@@ -13,7 +16,4 @@ public enum Algorithm {
      */
     MD5, AES;
 
-
-    Algorithm() {
-    }
 }

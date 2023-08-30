@@ -1,9 +1,5 @@
 package cn.zhz.privacy.utils;
 
-import java.lang.reflect.Field;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -46,7 +42,7 @@ public class DesensitizeUtil {
         if (infoLength == 1) {
             result = "*";
         } else if (infoLength == 2) {
-            result = info.substring(0, 1) + "*";
+            result = info.charAt(0) + "*";
         } else {
             double tempNum = (double) infoLength / 3;
             int num1 = (int) Math.floor(tempNum);
@@ -150,7 +146,7 @@ public class DesensitizeUtil {
             replacement = "*";
         }
         int replaceLength = end - begin;
-        if (replacement.length() > 0 && replaceLength > 0) {
+        if (!replacement.isEmpty() && replaceLength > 0) {
             StringBuilder sb = new StringBuilder(sourceStr);
             sb.replace(begin, end, repeat(replacement, replaceLength));
             return sb.toString();
@@ -168,7 +164,7 @@ public class DesensitizeUtil {
      */
     private static String repeat(String value, int count) {
         String result = "";
-        if (count > 0 && value != null && !"".equals(value)) {
+        if (count > 0 && value != null && !value.isEmpty()) {
             for (int i = 0; i < count; i++) {
                 result = result.concat(value);
             }

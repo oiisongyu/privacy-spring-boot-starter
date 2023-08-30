@@ -1,7 +1,6 @@
 package cn.zhz.privacy.utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
@@ -16,9 +15,8 @@ import java.util.Base64;
  * @date 2021-11-16
  * @apiNote
  */
+@Slf4j
 public class CryptoUtil {
-
-    private static final Logger log = LoggerFactory.getLogger(CryptoUtil.class.getName());
 
     public static final String ALGORITHM_SHA = "SHA";
 
@@ -52,7 +50,8 @@ public class CryptoUtil {
 
         try {
             return encryptBase64(encryptAes(key.getBytes(), content.getBytes()));
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException |
+                 IllegalBlockSizeException e) {
             log.error("加密错误已返回原值", e);
             return content;
         }
@@ -87,7 +86,8 @@ public class CryptoUtil {
 
         try {
             return new String(decryptAes(key, decryptBase64(content)));
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException |
+                 IllegalBlockSizeException e) {
             log.error("解密错误已返回原值", e);
             return content;
         }
