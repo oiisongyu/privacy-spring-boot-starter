@@ -127,8 +127,21 @@ public class CryptoInterceptor implements Interceptor, ApplicationContextAware {
         if (object instanceof Map) {
             Map paramMap = (Map) object;
             Set keySet = paramMap.keySet();
+            // 处理过的对象记录
+            Set<Object> handleObjectSet = new HashSet<>();
             for (Object key : keySet) {
                 Object o = paramMap.get(key);
+                // 如果参数是集合类型，根据遍历处理
+                if (o instanceof Collection) {
+                    for (Object item : ((Collection<?>) o)) {
+                        if (handleObjectSet.contains(item)) {
+                            continue;
+                        }
+                        cryptAnnotationCacheHandler.parse(item.getClass());
+                        handleObject(item, item.getClass(), cryptoType);
+                        handleObjectSet.add(item);
+                    }
+                }
                 if (o != null) {
                     //
                     cryptAnnotationCacheHandler.parse(o.getClass());
