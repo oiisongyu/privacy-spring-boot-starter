@@ -65,10 +65,11 @@ privacy:
     @FieldEncrypt(algorithm = Algorithm.MD5)
     private String password;
 ```
-5.  如果这两个都不想用可以自定义加密解密器只需要实现ICrypto接口自定义加密解密方法即可
+5.  如果这两个都不想用可以自定义加密解密器只需要实现ICrypto接口自定义加密解密方法并注入到spring容器即可
 
 ```
 @Slf4j
+@Component
 public class MyCrypto implements ICrypto {
 
     @Override
