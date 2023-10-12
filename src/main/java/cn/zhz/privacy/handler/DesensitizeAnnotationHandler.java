@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * @author ZHZ
@@ -15,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DesensitizeAnnotationHandler extends AbstractAnnotationHandler<FieldDesensitize> {
 
     private static final Map<Class<?>, Set<Field>> FIELDS__Map = new ConcurrentHashMap<>();
-
     private static final Set<Class<?>> CLASS_SET = new HashSet<>();
+    private static final Set<Class<?>> HANDLING_CLASS_SET = new CopyOnWriteArraySet<>();
 
     public DesensitizeAnnotationHandler() {
         super(FieldDesensitize.class);
@@ -31,4 +32,8 @@ public class DesensitizeAnnotationHandler extends AbstractAnnotationHandler<Fiel
         return CLASS_SET;
     }
 
+    @Override
+    Set<Class<?>> getHandlingClassSet() {
+        return HANDLING_CLASS_SET;
+    }
 }

@@ -3,11 +3,9 @@ package cn.zhz.privacy.handler;
 import cn.zhz.privacy.annotation.FieldEncrypt;
 
 import java.lang.reflect.Field;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
@@ -21,6 +19,8 @@ public class CryptAnnotationHandler extends AbstractAnnotationHandler<FieldEncry
 
     private static final Set<Class<?>> CLASS_SET = new CopyOnWriteArraySet<>();
 
+    private static final Set<Class<?>> HANDLING_CLASS_SET = new CopyOnWriteArraySet<>();
+
     public CryptAnnotationHandler() {
         super(FieldEncrypt.class);
     }
@@ -33,5 +33,8 @@ public class CryptAnnotationHandler extends AbstractAnnotationHandler<FieldEncry
         return CLASS_SET;
     }
 
-
+    @Override
+    Set<Class<?>> getHandlingClassSet() {
+        return HANDLING_CLASS_SET;
+    }
 }
