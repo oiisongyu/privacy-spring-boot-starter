@@ -1,9 +1,10 @@
 package cn.zhz.privacy.handler;
 
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Type;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
 
@@ -80,9 +81,6 @@ public abstract class AbstractAnnotationHandler<T extends Annotation> {
      * @return
      */
     public Set<Field> getFields(Class<?> oClass) {
-        // 如果正在处理中循环等待
-        while (isHandlingClass(oClass)) {
-        }
         return getFieldsMap().get(oClass);
     }
 
@@ -144,15 +142,21 @@ public abstract class AbstractAnnotationHandler<T extends Annotation> {
                     haveAnnotationField = true;
                     addField(oClass, declaredField);
                 }
-            // 如果该字段为数组类型
+                // 如果该字段为数组类型
             } else if (Collection.class.isAssignableFrom(declaredFieldType)) {
-
-                Type genericType = declaredField.getGenericType();
-                // 判断是否是正在处理中的类
-                if (isHandlingClass(genericType.getClass())) {
-                    continue;
+                Class<?> actualTypeArgumentClass;
+                try {
+                    actualTypeArgumentClass = Class.forName(((ParameterizedTypeImpl) declaredField.getGenericType()).getActualTypeArguments()[0].getTypeName());
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
                 }
-                boolean childHaveAnnotationField = parse(genericType.getClass());
+                boolean childHaveAnnotationField;
+                // 判断是否是正在处理中的类
+                if (isHandlingClass(actualTypeArgumentClass)) {
+                    childHaveAnnotationField = true;
+                } else {
+                    childHaveAnnotationField = parse(actualTypeArgumentClass);
+                }
                 if (childHaveAnnotationField) {
                     haveAnnotationField = true;
                     addField(oClass, declaredField);
@@ -160,10 +164,12 @@ public abstract class AbstractAnnotationHandler<T extends Annotation> {
                 // 如果该字段为对象类型
             } else if (Object.class.isAssignableFrom(declaredFieldType)) {
                 // 判断是否是正在处理中的类
+                boolean childHaveAnnotationField;
                 if (isHandlingClass(declaredFieldType)) {
-                    continue;
+                    childHaveAnnotationField = true;
+                } else {
+                    childHaveAnnotationField = parse(declaredFieldType);
                 }
-                boolean childHaveAnnotationField = parse(declaredFieldType);
                 if (childHaveAnnotationField) {
                     haveAnnotationField = true;
                     addField(oClass, declaredField);
@@ -174,8 +180,8 @@ public abstract class AbstractAnnotationHandler<T extends Annotation> {
         }
         // 标记为已处理
         addHandleClass(oClass);
-        // 去除处理中标识
-        removeHandlingClass(oClass);
+//        // 去除处理中标识
+//        removeHandlingClass(oClass);
         return haveAnnotationField;
     }
 
