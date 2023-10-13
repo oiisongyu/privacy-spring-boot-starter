@@ -1,5 +1,7 @@
 package cn.zhz.privacy.handler;
 
+import cn.zhz.privacy.enums.SerializeType;
+import lombok.extern.slf4j.Slf4j;
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import java.lang.annotation.Annotation;
@@ -8,11 +10,13 @@ import java.lang.reflect.Modifier;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
 
-public abstract class AbstractAnnotationHandler<T extends Annotation> {
+@Slf4j
+public abstract class AbstractHandler<T extends Annotation> {
+
 
     private final Class<T> annotationClass;
 
-    public AbstractAnnotationHandler(Class<T> annotationClass) {
+    public AbstractHandler(Class<T> annotationClass) {
         this.annotationClass = annotationClass;
     }
 
@@ -200,5 +204,86 @@ public abstract class AbstractAnnotationHandler<T extends Annotation> {
                         Date.class.isAssignableFrom(clazz)
                 ;
     }
+
+    abstract String getAfterValue(T annotation, String originalValue, SerializeType serializeType);
+
+    /**
+     * 处理Object
+     *
+     * @param obj
+     * @param oClass
+     */
+    protected void handleObject(Object obj, Class<?> oClass, SerializeType serializeType) {
+
+
+        Set<Field> fields = getFields(oClass);
+        if (fields == null || fields.isEmpty()) {
+            return;
+        }
+        for (Field declaredField : fields) {
+
+            //静态属性直接跳过
+            if (Modifier.isStatic(declaredField.getModifiers())) {
+                continue;
+            }
+
+            boolean accessible = declaredField.isAccessible();
+            declaredField.setAccessible(true);
+            Object value;
+            try {
+                value = declaredField.get(obj);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+            declaredField.setAccessible(accessible);
+
+            if (value == null || value instanceof Number) {
+
+            } else if (value instanceof CharSequence) {
+                T annotation = declaredField.getAnnotation(annotationClass);
+                if (annotation != null) {
+                    try {
+                        setValue(declaredField, obj, annotation, serializeType);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+            } else if (value instanceof Collection) {
+                Collection coll = (Collection) value;
+                for (Object o : coll) {
+                    handleObject(o, o.getClass(), serializeType);
+                }
+            } else {
+                handleObject(value, value.getClass(), serializeType);
+            }
+
+
+
+        }
+
+    }
+
+    /**
+     * 处理字符
+     *
+     * @param field  字段
+     * @param object 字段原值
+     * @throws IllegalAccessException
+     */
+    public void setValue(Field field, Object object, T annotation, SerializeType serializeType) throws IllegalAccessException {
+
+        boolean accessible = field.isAccessible();
+        field.setAccessible(true);
+        String value = (String) field.get(object);
+        if (annotation != null) {
+            String afterValue = getAfterValue(annotation, value, serializeType);
+            log.debug("原值：" + value);
+            log.debug("处理后：" + afterValue);
+            field.set(object, afterValue);
+            field.setAccessible(accessible);
+        }
+    }
+
 
 }

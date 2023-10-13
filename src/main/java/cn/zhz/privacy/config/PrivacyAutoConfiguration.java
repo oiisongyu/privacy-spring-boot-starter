@@ -2,9 +2,7 @@ package cn.zhz.privacy.config;
 
 import cn.zhz.privacy.crypto.DefaultCrypto;
 import cn.zhz.privacy.desensitizer.DefaultDesensitizer;
-import cn.zhz.privacy.handler.CryptAnnotationHandler;
 import cn.zhz.privacy.handler.CryptHandler;
-import cn.zhz.privacy.handler.DesensitizeAnnotationHandler;
 import cn.zhz.privacy.handler.DesensitizeHandler;
 import cn.zhz.privacy.interceptor.CryptoInterceptor;
 import cn.zhz.privacy.interceptor.DesensitizeInterceptor;
@@ -29,13 +27,13 @@ public class PrivacyAutoConfiguration {
     }
 
     @Bean
-    public CryptHandler cryptHandler(CryptoProperties cryptoProperties) {
-        return new CryptHandler(cryptoProperties, new CryptAnnotationHandler());
+    public DesensitizeHandler desensitizeHandler() {
+        return new DesensitizeHandler();
     }
 
     @Bean
-    public DesensitizeHandler desensitizeHandler() {
-        return new DesensitizeHandler(new DesensitizeAnnotationHandler());
+    public CryptHandler cryptHandler(CryptoProperties cryptoProperties) {
+        return new CryptHandler(cryptoProperties);
     }
 
     @Bean

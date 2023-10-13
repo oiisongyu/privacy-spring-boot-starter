@@ -22,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CryptoInterceptor implements IInnerInterceptor {
 
+
     private final CryptHandler cryptHandler;
 
     @Override

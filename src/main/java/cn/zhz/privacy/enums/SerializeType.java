@@ -8,11 +8,11 @@ import lombok.NoArgsConstructor;
  * @apiNote
  */
 @NoArgsConstructor
-public enum CryptoType {
+public enum SerializeType {
     /**
-     * ENCRYPT 加密
-     * DECRYPT 解密
+     * EN 序列化
+     * DE 反序列化
      */
-    ENCRYPT, DECRYPT;
+    EN, DE;
 
 }

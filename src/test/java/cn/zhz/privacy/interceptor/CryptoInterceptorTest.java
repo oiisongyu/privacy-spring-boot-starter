@@ -3,6 +3,7 @@ package cn.zhz.privacy.interceptor;
 import cn.zhz.privacy.PrivacyApplication;
 import cn.zhz.privacy.crypto.ICrypto;
 import cn.zhz.privacy.enums.Algorithm;
+import cn.zhz.privacy.model.User1Dto;
 import cn.zhz.privacy.model.UserDto;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
@@ -51,7 +52,15 @@ public class CryptoInterceptorTest {
 
         Assert.assertEquals(getAssertResulList(), resultList);
     }
-
+    /**
+     * 查询加密参数
+     */
+    @Test
+    public void selectTest3() {
+        Object param = getParam3();
+        cryptoInterceptor.beforeQuery(null, null, param, null, null, null);
+        Assert.assertEquals(getAssertParam3(), param);
+    }
 
 
     private List<Object> getResultList() {
@@ -80,9 +89,21 @@ public class CryptoInterceptorTest {
         return new UserDto("zhangsan", "123456", "19969999999", 1);
     }
 
+    private Object getParam3() {
+        return new User1Dto("zhangsan", "123456", "19969999999", 1, new User1Dto("zhangsan2", "123456", "19969999999", 1, null));
+    }
+
     private Object getAssertParam() {
         try {
             return new UserDto("zhangsan", defaultCrypto.encrypt(Algorithm.AES, "123456", null), "19969999999", 1);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Object getAssertParam3() {
+        try {
+            return new User1Dto("zhangsan", defaultCrypto.encrypt(Algorithm.AES, "123456", null), "19969999999", 1, new User1Dto("zhangsan2", defaultCrypto.encrypt(Algorithm.AES, "123456", null), "19969999999", 1, null));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
