@@ -23,9 +23,6 @@ public class DefaultDesensitizer implements IDesensitizer {
         if (value == null || value.isEmpty() || fillValue == null || fillValue.isEmpty()) {
             return "";
         }
-        String sensitiveInfo = DesensitizeUtil.encryptSensitiveInfo(value, fillValue);
-        log.debug("脱敏原值：" + value);
-        log.debug("脱敏后值：" + sensitiveInfo);
-        return sensitiveInfo;
+        return DesensitizeUtil.encryptSensitiveInfo(value, fillValue);
     }
 }
