@@ -5,6 +5,7 @@ import cn.zhz.privacy.crypto.ICrypto;
 import cn.zhz.privacy.enums.Algorithm;
 import cn.zhz.privacy.model.User1Dto;
 import cn.zhz.privacy.model.User2Dto;
+import cn.zhz.privacy.model.User3Dto;
 import cn.zhz.privacy.model.UserDto;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Assert;
@@ -97,6 +98,15 @@ public class PrivacyInterceptorTest {
         iInnerInterceptorList.forEach(iInnerInterceptor -> iInnerInterceptor.afterQuery(resultList));
 //        Assert.assertEquals(getAssertResulList4(), resultList);
     }
+    /**
+     * 查询后置-嵌套类型
+     */
+    @Test
+    public void selectTest6() {
+        List<Object> resultList = getResultList6();
+        iInnerInterceptorList.forEach(iInnerInterceptor -> iInnerInterceptor.afterQuery(resultList));
+        Assert.assertEquals(getAssertResulList6(), resultList);
+    }
 
     private List<Object> getParamList() {
         List<Object> paramList = new ArrayList<>();
@@ -176,6 +186,26 @@ public class PrivacyInterceptorTest {
         }
 
         return paramList2;
+    }
+    private List<Object> getResultList6() {
+        List<Object> paramList = new ArrayList<>();
+        try {
+            Collections.addAll(paramList,
+                    new User3Dto("zhangsan", defaultCrypto.encrypt(Algorithm.AES, "123456", null), "19969999999", 1,new User3Dto()),
+                    new User3Dto("lisi", defaultCrypto.encrypt(Algorithm.AES, "654321", null), "16969999666", 1,new User3Dto())
+            );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return paramList;
+    }
+    private List<Object> getAssertResulList6() {
+        List<Object> paramList = new ArrayList<>();
+        Collections.addAll(paramList,
+                new User3Dto("zhangsan", "123456", "199****9999", 1,new User3Dto()),
+                new User3Dto("lisi", "654321", "169****9666", 1,new User3Dto())
+        );
+        return paramList;
     }
 
     private List<Object> getAssertResulList() {

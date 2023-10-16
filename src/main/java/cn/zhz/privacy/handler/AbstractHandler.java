@@ -1,6 +1,7 @@
 package cn.zhz.privacy.handler;
 
 import cn.zhz.privacy.enums.SerializeType;
+import cn.zhz.privacy.utils.ReflectionKit;
 import lombok.extern.slf4j.Slf4j;
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
@@ -24,12 +25,6 @@ public abstract class AbstractHandler<T extends Annotation> {
 
     abstract Set<Class<?>> getClassSet();
 
-    /**
-     * 获取正在处理中的类
-     *
-     * @return
-     */
-    abstract Set<Class<?>> getHandlingClassSet();
 
     /**
      * 是否解析过该class
@@ -41,15 +36,6 @@ public abstract class AbstractHandler<T extends Annotation> {
         return getClassSet().contains(oClass);
     }
 
-    /**
-     * 是否解析中class
-     *
-     * @param oClass
-     * @return
-     */
-    public boolean isHandlingClass(Class<?> oClass) {
-        return getHandlingClassSet().contains(oClass);
-    }
 
     /**
      * 将该class标识为解析过
@@ -58,24 +44,6 @@ public abstract class AbstractHandler<T extends Annotation> {
      */
     public void addHandleClass(Class<?> oClass) {
         getClassSet().add(oClass);
-    }
-
-    /**
-     * 将该class标识为解析中
-     *
-     * @param oClass
-     */
-    public void addHandlingClass(Class<?> oClass) {
-        getHandlingClassSet().add(oClass);
-    }
-
-    /**
-     * 去除该class解析中标识
-     *
-     * @param oClass
-     */
-    public void removeHandlingClass(Class<?> oClass) {
-        getHandlingClassSet().remove(oClass);
     }
 
     /**
@@ -105,46 +73,34 @@ public abstract class AbstractHandler<T extends Annotation> {
      * @param oClass
      * @return
      */
-    public boolean parse(Class<?> oClass) {
+    public void parse(Class<?> oClass) {
+        parseClass(oClass, new HashSet<>());
+    }
 
-
+    private boolean parseClass(Class<?> oClass, Set<Class<?>> foreachClassList) {
         // 已处理的类无需再次处理
         if (isHandleClass(oClass)) {
             Set<Field> fields = getFields(oClass);
             return fields != null && !fields.isEmpty();
         }
-        if (isFilter(oClass)) {
-            return false;
-        }
-        // 标记为正在处理中
-        addHandlingClass(oClass);
+
+        foreachClassList.add(oClass);
+
+        List<Field> fieldList = ReflectionKit.getFieldList(oClass);
 
         boolean haveAnnotationField = false;
-        Class<?> superclass = oClass.getSuperclass();
-        if (superclass != null && !superclass.equals(Object.class) && superclass.getDeclaredFields().length > 0) {
-            parse(superclass);
-        }
 
-        for (Field declaredField : oClass.getDeclaredFields()) {
+        for (Field declaredField : fieldList) {
 
-            int modifiers = declaredField.getModifiers();
-
-            // 过滤类型
-            if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers) || Modifier.isVolatile(modifiers) || Modifier.isSynchronized(modifiers)) {
-                continue;
-            }
-
-            // 过滤class
+            Class<?> declaringClass = declaredField.getDeclaringClass();
             Class<?> declaredFieldType = declaredField.getType();
-            if (isFilter(declaredFieldType)) {
-                continue;
-            }
+
             // 如果字符类型
             if (CharSequence.class.isAssignableFrom(declaredFieldType)) {
                 T annotation = declaredField.getAnnotation(this.annotationClass);
                 if (annotation != null) {
+                    addField(declaringClass, declaredField);
                     haveAnnotationField = true;
-                    addField(oClass, declaredField);
                 }
                 // 如果该字段为数组类型
             } else if (Collection.class.isAssignableFrom(declaredFieldType)) {
@@ -154,55 +110,38 @@ public abstract class AbstractHandler<T extends Annotation> {
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
-                boolean childHaveAnnotationField;
-                // 判断是否是正在处理中的类
-                if (isHandlingClass(actualTypeArgumentClass)) {
-                    childHaveAnnotationField = true;
-                } else {
-                    childHaveAnnotationField = parse(actualTypeArgumentClass);
-                }
-                if (childHaveAnnotationField) {
+
+                if (foreachClassList.contains(actualTypeArgumentClass)) {
                     haveAnnotationField = true;
-                    addField(oClass, declaredField);
+                    addField(declaringClass, declaredField);
+                    continue;
+                }
+
+                boolean childHaveAnnotationField = parseClass(actualTypeArgumentClass, foreachClassList);
+                if (childHaveAnnotationField) {
+                    addField(declaringClass, declaredField);
+                    haveAnnotationField = true;
                 }
                 // 如果该字段为对象类型
             } else if (Object.class.isAssignableFrom(declaredFieldType)) {
-                // 判断是否是正在处理中的类
-                boolean childHaveAnnotationField;
-                if (isHandlingClass(declaredFieldType)) {
-                    childHaveAnnotationField = true;
-                } else {
-                    childHaveAnnotationField = parse(declaredFieldType);
-                }
-                if (childHaveAnnotationField) {
+
+                if (foreachClassList.contains(declaredFieldType)) {
                     haveAnnotationField = true;
-                    addField(oClass, declaredField);
+                    addField(declaringClass, declaredField);
+                    continue;
+                }
+                boolean childHaveAnnotationField = parseClass(declaredFieldType, foreachClassList);
+                if (childHaveAnnotationField) {
+                    addField(declaringClass, declaredField);
+                    haveAnnotationField = true;
                 }
             }
-
 
         }
         // 标记为已处理
         addHandleClass(oClass);
-//        // 去除处理中标识
-//        removeHandlingClass(oClass);
+
         return haveAnnotationField;
-    }
-
-
-    /**
-     * 是否是
-     *
-     * @param clazz
-     * @return
-     */
-    private boolean isFilter(Class<?> clazz) {
-        return
-                Number.class.isAssignableFrom(clazz) ||
-                        Long.class.isAssignableFrom(clazz) ||
-                        TemporalAccessor.class.isAssignableFrom(clazz) ||
-                        Date.class.isAssignableFrom(clazz)
-                ;
     }
 
     abstract String getAfterValue(T annotation, String originalValue, SerializeType serializeType);
@@ -236,10 +175,11 @@ public abstract class AbstractHandler<T extends Annotation> {
                 throw new RuntimeException(e);
             }
             declaredField.setAccessible(accessible);
-
             if (value == null || value instanceof Number) {
+                continue;
+            }
 
-            } else if (value instanceof CharSequence) {
+            if (value instanceof CharSequence) {
                 T annotation = declaredField.getAnnotation(annotationClass);
                 if (annotation != null) {
                     try {
@@ -257,7 +197,6 @@ public abstract class AbstractHandler<T extends Annotation> {
             } else {
                 handleObject(value, value.getClass(), serializeType);
             }
-
 
 
         }

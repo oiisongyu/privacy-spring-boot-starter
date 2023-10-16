@@ -23,7 +23,6 @@ public class DesensitizeHandler extends AbstractHandler<FieldDesensitize> implem
     private ApplicationContext applicationContext;
     private static final Map<Class<?>, Set<Field>> FIELDS__Map = new ConcurrentHashMap<>();
     private static final Set<Class<?>> CLASS_SET = new HashSet<>();
-    private static final Set<Class<?>> HANDLING_CLASS_SET = new CopyOnWriteArraySet<>();
 
     public DesensitizeHandler() {
         super(FieldDesensitize.class);
@@ -36,11 +35,6 @@ public class DesensitizeHandler extends AbstractHandler<FieldDesensitize> implem
 
     protected Set<Class<?>> getClassSet() {
         return CLASS_SET;
-    }
-
-    @Override
-    Set<Class<?>> getHandlingClassSet() {
-        return HANDLING_CLASS_SET;
     }
 
     @Override

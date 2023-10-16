@@ -25,7 +25,6 @@ public class CryptHandler extends AbstractHandler<FieldEncrypt> implements Appli
     private ApplicationContext applicationContext;
     private static final Map<Class<?>, Set<Field>> FIELDS__Map = new ConcurrentHashMap<>();
     private static final Set<Class<?>> CLASS_SET = new CopyOnWriteArraySet<>();
-    private static final Set<Class<?>> HANDLING_CLASS_SET = new CopyOnWriteArraySet<>();
     private final CryptoProperties cryptoProperties;
 
     public CryptHandler(CryptoProperties cryptoProperties) {
@@ -39,11 +38,6 @@ public class CryptHandler extends AbstractHandler<FieldEncrypt> implements Appli
 
     protected Set<Class<?>> getClassSet() {
         return CLASS_SET;
-    }
-
-    @Override
-    Set<Class<?>> getHandlingClassSet() {
-        return HANDLING_CLASS_SET;
     }
 
     @Override
@@ -113,14 +107,11 @@ public class CryptHandler extends AbstractHandler<FieldEncrypt> implements Appli
 
         if (parameter instanceof Map) {
             Map paramMap = (Map) parameter;
-            Set keySet = paramMap.keySet();
             Set<Object> handledObjectList = new HashSet<>();
-            for (Object key : keySet) {
-                Object o = paramMap.get(key);
-                // 如果参数是集合类型，根据遍历处理
-                if (o != null) {
-                    if (o instanceof Collection) {
-                        for (Object item : ((Collection<?>) o)) {
+            for (Object value : paramMap.values()) {
+                if (value != null) {
+                    if (value instanceof Collection) {
+                        for (Object item : ((Collection<?>) value)) {
                             if (handledObjectList.contains(item)) {
                                 continue;
                             }
@@ -129,11 +120,12 @@ public class CryptHandler extends AbstractHandler<FieldEncrypt> implements Appli
                             handledObjectList.add(item);
                         }
                     } else {
-                        parse(o.getClass());
-                        handleObject(o, o.getClass(), SerializeType.EN);
+                        parse(value.getClass());
+                        handleObject(value, value.getClass(), SerializeType.EN);
                     }
                 }
             }
+
         } else {
             parse(parameter.getClass());
             handleObject(parameter, parameter.getClass(), SerializeType.EN);
