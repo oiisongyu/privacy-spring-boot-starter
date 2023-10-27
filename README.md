@@ -20,7 +20,7 @@ mybatis 3.5
         <dependency>
             <groupId>com.gitee.china-zhz</groupId>
             <artifactId>privacy-spring-boot-starter</artifactId>
-            <version>1.2.0</version>
+            <version>1.3.2</version>
         </dependency>
 ```
 
