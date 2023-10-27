@@ -6,11 +6,14 @@ import cn.zhz.privacy.handler.CryptHandler;
 import cn.zhz.privacy.handler.DesensitizeHandler;
 import cn.zhz.privacy.interceptor.CryptoInterceptor;
 import cn.zhz.privacy.interceptor.DesensitizeInterceptor;
+import cn.zhz.privacy.interceptor.IInnerInterceptor;
 import cn.zhz.privacy.interceptor.PrivacyInterceptor;
 import cn.zhz.privacy.properties.CryptoProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 /**
  * @author ZHZ
@@ -22,8 +25,8 @@ import org.springframework.context.annotation.Configuration;
 public class PrivacyAutoConfiguration {
 
     @Bean
-    public PrivacyInterceptor privacyInterceptor() {
-        return new PrivacyInterceptor();
+    public PrivacyInterceptor privacyInterceptor(List<IInnerInterceptor> iInnerInterceptorList) {
+        return new PrivacyInterceptor(iInnerInterceptorList);
     }
 
     @Bean

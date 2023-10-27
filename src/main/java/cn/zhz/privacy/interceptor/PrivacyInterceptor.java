@@ -1,6 +1,6 @@
 package cn.zhz.privacy.interceptor;
 
-import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
@@ -14,7 +14,6 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,10 +28,10 @@ import java.util.List;
                 @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
         }
 )
+@RequiredArgsConstructor
 public class PrivacyInterceptor implements Interceptor {
 
-    @Setter
-    private List<IInnerInterceptor> iInnerInterceptorList = new ArrayList<>();
+    private final List<IInnerInterceptor> iInnerInterceptorList;
 
     public Object intercept(Invocation invocation) throws Throwable {
         Method method = invocation.getMethod();
