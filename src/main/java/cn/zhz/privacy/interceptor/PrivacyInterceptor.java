@@ -6,7 +6,6 @@ import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
@@ -41,28 +40,28 @@ public class PrivacyInterceptor implements Interceptor {
         MappedStatement ms = (MappedStatement) args[0];
         Object parameter = args[1];
 
-        RowBounds rowBounds = (RowBounds) args[2];
-        ResultHandler<Object> resultHandler = (ResultHandler) args[3];
-        Executor executor = (Executor) invocation.getTarget();
-
-        CacheKey cacheKey;
-        BoundSql boundSql;
-        //由于逻辑关系，只会进入一次
-        if (args.length == 4) {
-            //4 个参数时
-            boundSql = ms.getBoundSql(parameter);
-            cacheKey = executor.createCacheKey(ms, parameter, rowBounds, boundSql);
-        } else {
-            //6 个参数时
-            cacheKey = (CacheKey) args[4];
-            boundSql = (BoundSql) args[5];
-        }
 
         switch (method.getName()) {
             case "update":
                 updateHandle(parameter);
                 return invocation.proceed();
             case "query":
+                RowBounds rowBounds = (RowBounds) args[2];
+                ResultHandler<Object> resultHandler = (ResultHandler) args[3];
+                Executor executor = (Executor) invocation.getTarget();
+
+                CacheKey cacheKey;
+                BoundSql boundSql;
+                //由于逻辑关系，只会进入一次
+                if (args.length == 4) {
+                    //4 个参数时
+                    boundSql = ms.getBoundSql(parameter);
+                    cacheKey = executor.createCacheKey(ms, parameter, rowBounds, boundSql);
+                } else {
+                    //6 个参数时
+                    cacheKey = (CacheKey) args[4];
+                    boundSql = (BoundSql) args[5];
+                }
                 return selectHandle(executor, ms, parameter, rowBounds, resultHandler, boundSql, cacheKey);
             default:
                 return invocation.proceed();
