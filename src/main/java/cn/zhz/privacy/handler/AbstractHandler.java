@@ -3,12 +3,12 @@ package cn.zhz.privacy.handler;
 import cn.zhz.privacy.enums.SerializeType;
 import cn.zhz.privacy.utils.ReflectionKit;
 import lombok.extern.slf4j.Slf4j;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.time.temporal.TemporalAccessor;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 
 @Slf4j
@@ -104,23 +104,24 @@ public abstract class AbstractHandler<T extends Annotation> {
                 }
                 // 如果该字段为数组类型
             } else if (Collection.class.isAssignableFrom(declaredFieldType)) {
-                Class<?> actualTypeArgumentClass;
-                try {
-                    actualTypeArgumentClass = Class.forName(((ParameterizedTypeImpl) declaredField.getGenericType()).getActualTypeArguments()[0].getTypeName());
-                } catch (ClassNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
+                Type genericType = declaredField.getGenericType();
+                if (genericType instanceof ParameterizedType) {
+                    ParameterizedType parameterizedType = (ParameterizedType) genericType;
+                    Type[] actualTypeArguments = parameterizedType.getActualTypeArguments();
+                    if (actualTypeArguments.length > 0 && actualTypeArguments[0] instanceof Class) {
+                        Class<?> actualTypeArgumentClass = (Class<?>) actualTypeArguments[0];
+                        if (foreachClassList.contains(actualTypeArgumentClass)) {
+                            haveAnnotationField = true;
+                            addField(declaringClass, declaredField);
+                            continue;
+                        }
 
-                if (foreachClassList.contains(actualTypeArgumentClass)) {
-                    haveAnnotationField = true;
-                    addField(declaringClass, declaredField);
-                    continue;
-                }
-
-                boolean childHaveAnnotationField = parseClass(actualTypeArgumentClass, foreachClassList);
-                if (childHaveAnnotationField) {
-                    addField(declaringClass, declaredField);
-                    haveAnnotationField = true;
+                        boolean childHaveAnnotationField = parseClass(actualTypeArgumentClass, foreachClassList);
+                        if (childHaveAnnotationField) {
+                            addField(declaringClass, declaredField);
+                            haveAnnotationField = true;
+                        }
+                    }
                 }
                 // 如果该字段为对象类型
             } else if (Object.class.isAssignableFrom(declaredFieldType)) {

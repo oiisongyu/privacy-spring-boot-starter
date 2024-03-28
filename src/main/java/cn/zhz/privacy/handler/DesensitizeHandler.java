@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * @author ZHZ
@@ -51,6 +50,9 @@ public class DesensitizeHandler extends AbstractHandler<FieldDesensitize> implem
      */
     public void handleResultList(List<Object> resultList) {
         if (resultList == null && resultList.isEmpty()) {
+            return;
+        }
+        if (resultList.get(0) == null){
             return;
         }
         // 默认集合内元素一致

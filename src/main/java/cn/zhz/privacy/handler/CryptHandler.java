@@ -84,6 +84,11 @@ public class CryptHandler extends AbstractHandler<FieldEncrypt> implements Appli
         if (resultList == null && resultList.isEmpty()) {
             return;
         }
+
+        if (resultList.get(0) == null){
+            return;
+        }
+
         // 默认集合内元素一致
         parse(resultList.get(0).getClass());
 
